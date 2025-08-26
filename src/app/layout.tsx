@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Jost } from "next/font/google";
 
 const jost = Jost({
@@ -22,8 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${jost.className} antialiased`}>
-        <Header />
-        <main className="min-h-screen bg-gray-50">{children}</main>
+        <Navbar />
+        <main className="min-h-screen bg-light-200">{children}</main>
+        <Footer />
       </body>
     </html>
   );
