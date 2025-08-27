@@ -1,22 +1,20 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
-import { user } from "./user";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { users } from "./user";
 
-export const account = pgTable("account", {
+export const accounts = pgTable("accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
-    .notNull()
-    .references(() => user.id),
-  accountId: varchar("account_id", { length: 255 }).notNull(),
-  providerId: varchar("provider_id", { length: 64 }).notNull(),
-  accessToken: varchar("access_token", { length: 255 }),
-  refreshToken: varchar("refresh_token", { length: 255 }),
-  accessTokenExpiresAt: timestamp("access_token_expires_at", { mode: "date" }),
-  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
-    mode: "date",
-  }),
-  scope: varchar("scope", { length: 255 }),
-  idToken: varchar("id_token", { length: 255 }),
-  password: varchar("password", { length: 255 }),
-  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  idToken: text("id_token"),
+  password: text("password"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

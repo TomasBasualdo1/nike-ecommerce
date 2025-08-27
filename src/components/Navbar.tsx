@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useCartStore } from '@/lib/store';
-import { Search, ShoppingCart, Menu, X } from 'lucide-react';
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useCartStore } from "@/lib/store";
+import { Search, ShoppingCart, Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { getItemCount } = useCartStore();
 
   const navigationLinks = [
-    { name: 'Men', href: '/men' },
-    { name: 'Women', href: '/women' },
-    { name: 'Kids', href: '/kids' },
-    { name: 'Collections', href: '/collections' },
-    { name: 'Contact', href: '/contact' },
+    { name: "Men", href: "/men" },
+    { name: "Women", href: "/women" },
+    { name: "Kids", href: "/kids" },
+    { name: "Collections", href: "/collections" },
+    { name: "Contact", href: "/contact" },
   ];
 
   const toggleMobileMenu = () => {
@@ -59,8 +59,8 @@ export default function Navbar() {
             </button>
 
             {/* Cart */}
-            <Link 
-              href="/cart" 
+            <Link
+              href="/cart"
               className="relative flex items-center text-dark-900 hover:text-dark-700 transition-colors duration-200"
             >
               <ShoppingCart className="h-5 w-5" />
@@ -70,8 +70,8 @@ export default function Navbar() {
             </Link>
 
             {/* Sign In */}
-            <Link 
-              href="/sign-in" 
+            <Link
+              href="/sign-in"
               className="flex items-center text-dark-900 hover:text-dark-700 transition-colors duration-200"
             >
               <span className="font-medium">Sign In</span>

@@ -1,8 +1,8 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const guest = pgTable("guest", {
+export const guests = pgTable("guests", {
   id: uuid("id").primaryKey().defaultRandom(),
-  sessionToken: varchar("session_token", { length: 255 }).notNull().unique(),
-  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  sessionToken: text("session_token").unique().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
 });

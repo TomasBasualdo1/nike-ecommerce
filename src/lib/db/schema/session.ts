@@ -1,15 +1,15 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
-import { user } from "./user";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { users } from "./user";
 
-export const session = pgTable("session", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey(),
   userId: uuid("user_id")
-    .notNull()
-    .references(() => user.id),
-  token: varchar("token", { length: 255 }).notNull().unique(),
-  ipAddress: varchar("ip_address", { length: 64 }),
-  userAgent: varchar("user_agent", { length: 255 }),
-  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  token: text("token").unique().notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
