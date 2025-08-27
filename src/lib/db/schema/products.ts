@@ -1,28 +1,55 @@
-import { pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  boolean,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { categories } from "./categories";
 import { genders } from "./filters/genders";
 import { brands } from "./brands";
 import { z } from "zod";
 
-export const products = pgTable("products", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  description: text("description"),
-  categoryId: uuid("category_id")
-    .references(() => categories.id)
-    .notNull(),
-  genderId: uuid("gender_id")
-    .references(() => genders.id)
-    .notNull(),
-  brandId: uuid("brand_id")
-    .references(() => brands.id)
-    .notNull(),
-  isPublished: boolean("is_published").notNull().default(false),
-  // optional FK to a variant (set after variants exist) kept without reference to avoid circular import
-  defaultVariantId: uuid("default_variant_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const products = pgTable(
+  "products",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description"),
+    categoryId: uuid("category_id")
+      .references(() => categories.id)
+      .notNull(),
+    genderId: uuid("gender_id")
+      .references(() => genders.id)
+      .notNull(),
+    brandId: uuid("brand_id")
+      .references(() => brands.id)
+      .notNull(),
+    isPublished: boolean("is_published").notNull().default(false),
+    // optional FK to a variant (set after variants exist) kept without reference to avoid circular import
+    defaultVariantId: uuid("default_variant_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      brandPublishedIdx: index("idx_products_brand_published").on(
+        table.brandId,
+        table.isPublished
+      ),
+      categoryPublishedIdx: index("idx_products_category_published").on(
+        table.categoryId,
+        table.isPublished
+      ),
+      genderPublishedIdx: index("idx_products_gender_published").on(
+        table.genderId,
+        table.isPublished
+      ),
+      createdAtIdx: index("idx_products_created_at").on(table.createdAt),
+    };
+  }
+);
 
 // Zod validation
 export const insertProductSchema = z.object({

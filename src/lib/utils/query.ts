@@ -1,4 +1,5 @@
 import qs from "query-string";
+import { ProductFilterParams } from "../actions/product";
 
 export type SortOption = "featured" | "newest" | "price_asc" | "price_desc";
 export interface QueryState {
@@ -31,6 +32,37 @@ export function parseQueryState(
     color: getArray("color"),
     price: getArray("price"),
     sort: (params.sort as SortOption) || "featured",
+  };
+}
+
+// New: parseFilterParams for server action consumption
+export function parseFilterParams(
+  params: Record<string, string | string[] | undefined>
+): ProductFilterParams {
+  const get = (k: string) => params[k];
+  const getList = (k: string): string[] => {
+    const v = get(k);
+    if (!v) return [];
+    return Array.isArray(v) ? v : v.split(",");
+  };
+  const toNum = (v: string | string[] | undefined) => {
+    if (!v) return undefined;
+    const s = Array.isArray(v) ? v[0] : v;
+    const n = Number(s);
+    return isNaN(n) ? undefined : n;
+  };
+  return {
+    search: (get("search") as string) || undefined,
+    gender: getList("gender"),
+    size: getList("size"),
+    color: getList("color"),
+    category: getList("category"),
+    brand: getList("brand"),
+    priceMin: toNum(get("priceMin")),
+    priceMax: toNum(get("priceMax")),
+    sortBy: (get("sort") as any) || undefined,
+    page: toNum(get("page")) || 1,
+    limit: toNum(get("limit")) || 24,
   };
 }
 
