@@ -1,4 +1,4 @@
-import Card from "@/components/Card";
+import { Card } from "@/components";
 import Filters from "../../../components/Filters";
 import Sort from "../../../components/Sort";
 import { parseFilterParams } from "@/lib/utils/query";

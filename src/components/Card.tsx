@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCartStore } from "@/lib/store";
+import { useCartStore } from "../store/cart";
 import { ShoppingCart, Heart } from "lucide-react";
 
 export interface CardProps {

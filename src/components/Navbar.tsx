@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useCartStore } from "@/lib/store";
+import { useCartStore } from "@/store/cart";
 import { Search, ShoppingCart, Menu, X } from "lucide-react";
 
 export default function Navbar() {
