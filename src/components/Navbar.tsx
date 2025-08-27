@@ -69,6 +69,14 @@ export default function Navbar() {
               </span>
             </Link>
 
+            {/* Sign In */}
+            <Link 
+              href="/sign-in" 
+              className="flex items-center text-dark-900 hover:text-dark-700 transition-colors duration-200"
+            >
+              <span className="font-medium">Sign In</span>
+            </Link>
+
             {/* Mobile menu button */}
             <button
               onClick={toggleMobileMenu}
