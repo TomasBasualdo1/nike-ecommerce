@@ -1,218 +1,84 @@
-"use client";
-
-import { useState } from "react";
 import Card from "@/components/Card";
+import Filters from "@/components/Filters";
+import Sort from "@/components/Sort";
+import {
+  parseQueryState,
+  applyFiltersAndSort,
+  mockProducts,
+} from "@/lib/utils/query";
 
-// Sample product data
-const allProducts = [
-  {
-    id: "1",
-    title: "Nike Air Max 270",
-    description: "The Nike Air Max 270 delivers unrivaled, all-day comfort.",
-    price: 150.0,
-    image: "/shoes/shoe-8.avif",
-    category: "Running",
-    inStock: true,
-  },
-  {
-    id: "2",
-    title: "Nike ZoomX Vaporfly",
-    description: "The Nike ZoomX Vaporfly is designed for elite runners.",
-    price: 250.0,
-    image: "/shoes/shoe-9.avif",
-    category: "Running",
-    inStock: true,
-  },
-  {
-    id: "3",
-    title: "Nike Air Jordan 1",
-    description: "The Air Jordan 1 is a classic basketball shoe.",
-    price: 170.0,
-    image: "/shoes/shoe-10.avif",
-    category: "Basketball",
-    inStock: true,
-  },
-  {
-    id: "4",
-    title: "Nike Free Run",
-    description: "The Nike Free Run mimics natural foot movement.",
-    price: 120.0,
-    image: "/shoes/shoe-11.avif",
-    category: "Training",
-    inStock: false,
-  },
-  {
-    id: "5",
-    title: "Nike LeBron 18",
-    description: "The LeBron 18 provides explosive power and comfort.",
-    price: 200.0,
-    image: "/shoes/shoe-12.avif",
-    category: "Basketball",
-    inStock: true,
-  },
-  {
-    id: "6",
-    title: "Nike Metcon 6",
-    description: "The Metcon 6 is perfect for CrossFit and training.",
-    price: 130.0,
-    image: "/shoes/shoe-13.avif",
-    category: "Training",
-    inStock: true,
-  },
-  {
-    id: "7",
-    title: "Nike Pegasus 38",
-    description: "The Pegasus 38 offers smooth, responsive cushioning.",
-    price: 120.0,
-    image: "/shoes/shoe-14.avif",
-    category: "Running",
-    inStock: true,
-  },
-  {
-    id: "8",
-    title: "Nike React Infinity Run",
-    description: "The React Infinity Run reduces injury risk.",
-    price: 160.0,
-    image: "/shoes/shoe-15.avif",
-    category: "Running",
-    inStock: true,
-  },
-];
+interface ProductsPageProps {
+  // In newer Next.js versions searchParams can be provided as an async object.
+  searchParams:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
+}
 
-const categories = ["All", "Running", "Basketball", "Training"];
-
-export default function ProductsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("name");
-
-  const filteredProducts = allProducts.filter((product) => {
-    const matchesSearch =
-      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "price-low":
-        return a.price - b.price;
-      case "price-high":
-        return b.price - a.price;
-      case "name":
-        return a.title.localeCompare(b.title);
-      default:
-        return 0;
-    }
-  });
+export default async function ProductsPage({
+  searchParams,
+}: ProductsPageProps) {
+  const params = await searchParams; // awaiting supports both promise & plain object
+  const state = parseQueryState(params || {});
+  const { products, appliedFilters } = applyFiltersAndSort(mockProducts, state);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">All Products</h1>
-        <p className="text-gray-600">
-          Discover our complete collection of athletic footwear
-        </p>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
-          <div>
-            <label
-              htmlFor="search"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Search Products
-            </label>
-            <input
-              type="text"
-              id="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name or description..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-            />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Sidebar (desktop) / Drawer trigger (mobile) */}
+        <div className="hidden lg:block w-64 shrink-0">
+          <Filters initialState={state} />
+        </div>
+        <div className="flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-dark-900 mb-1">New</h1>
+              <p className="text-dark-600 text-sm">
+                {products.length} products
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Filters initialState={state} mobileOnly />
+              <Sort sort={state.sort} />
+            </div>
           </div>
-
-          {/* Category Filter */}
-          <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Category
-            </label>
-            <select
-              id="category"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
+          {/* Active filter badges */}
+          {appliedFilters.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {appliedFilters.map((f) => (
+                <span
+                  key={f.key + f.value}
+                  className="px-3 py-1 bg-light-200 text-dark-700 text-xs rounded-full"
+                >
+                  {f.label}
+                </span>
               ))}
-            </select>
-          </div>
-
-          {/* Sort */}
-          <div>
-            <label
-              htmlFor="sort"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Sort By
-            </label>
-            <select
-              id="sort"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-            >
-              <option value="name">Name</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
-          </div>
+            </div>
+          )}
+          {products.length ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((p) => (
+                <Card
+                  key={p.id}
+                  id={p.id}
+                  title={p.name}
+                  description={p.description}
+                  price={p.price}
+                  image={p.image}
+                  category={p.gender}
+                  inStock={p.inStock}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <p className="text-dark-600 mb-4">
+                No products match your filters.
+              </p>
+              <Filters initialState={state} resetButton />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Results Count */}
-      <div className="mb-6">
-        <p className="text-gray-600">
-          Showing {sortedProducts.length} of {allProducts.length} products
-        </p>
-      </div>
-
-      {/* Products Grid */}
-      {sortedProducts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sortedProducts.map((product) => (
-            <Card key={product.id} {...product} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-gray-600 text-lg">
-            No products found matching your criteria.
-          </p>
-          <button
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedCategory("All");
-              setSortBy("name");
-            }}
-            className="mt-4 inline-block bg-black text-white px-6 py-2 rounded-md font-semibold hover:bg-gray-800 transition-colors"
-          >
-            Clear Filters
-          </button>
-        </div>
-      )}
     </div>
   );
 }
