@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useCartStore } from '@/lib/store';
-import { ShoppingCart, Heart } from 'lucide-react';
+import Image from "next/image";
+import Link from "next/link";
+import { useCartStore } from "@/lib/store";
+import { ShoppingCart, Heart } from "lucide-react";
 
 export interface CardProps {
   id: string;
   title: string;
   description?: string;
-  price: number;
+  price: string | number;
   originalPrice?: number;
   image: string;
   category?: string;
@@ -21,7 +21,7 @@ export interface CardProps {
   href?: string;
   onAddToCart?: () => void;
   onAddToWishlist?: () => void;
-  variant?: 'default' | 'compact' | 'featured';
+  variant?: "default" | "compact" | "featured";
 }
 
 export default function Card({
@@ -40,7 +40,7 @@ export default function Card({
   href,
   onAddToCart,
   onAddToWishlist,
-  variant = 'default',
+  variant = "default",
 }: CardProps) {
   const { addItem } = useCartStore();
 
@@ -68,7 +68,7 @@ export default function Card({
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        
+
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {isNew && (
@@ -100,7 +100,7 @@ export default function Card({
             className="w-full bg-white text-dark-900 py-2 px-4 rounded-md font-medium hover:bg-light-200 disabled:bg-light-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-2"
           >
             <ShoppingCart className="h-4 w-4" />
-            {inStock ? 'Add to Cart' : 'Out of Stock'}
+            {inStock ? "Add to Cart" : "Out of Stock"}
           </button>
         </div>
       </div>
@@ -118,8 +118,10 @@ export default function Card({
         </h3>
 
         {/* Description - only show in featured variant */}
-        {variant === 'featured' && description && (
-          <p className="text-dark-500 text-sm mb-3 line-clamp-2">{description}</p>
+        {variant === "featured" && description && (
+          <p className="text-dark-500 text-sm mb-3 line-clamp-2">
+            {description}
+          </p>
         )}
 
         {/* Rating */}
@@ -130,7 +132,9 @@ export default function Card({
                 <svg
                   key={i}
                   className={`h-4 w-4 ${
-                    i < Math.floor(rating) ? 'text-orange-500' : 'text-light-400'
+                    i < Math.floor(rating)
+                      ? "text-orange-500"
+                      : "text-light-400"
                   }`}
                   fill="currentColor"
                   viewBox="0 0 20 20"

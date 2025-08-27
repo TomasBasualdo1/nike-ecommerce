@@ -1,231 +1,215 @@
 import qs from "query-string";
-import { ProductFilterParams } from "../actions/product";
 
-export type SortOption = "featured" | "newest" | "price_asc" | "price_desc";
-export interface QueryState {
-  gender: string[];
-  size: string[];
-  color: string[];
-  price: string[]; // e.g. ['0-50','50-100'] ranges
-  sort: SortOption;
+type QueryValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | string[]
+  | number[]
+  | boolean[];
+type QueryObject = Record<string, QueryValue>;
+
+export function parseQuery(search: string): QueryObject {
+  const parsed = qs.parse(search, { arrayFormat: "bracket" });
+  return parsed as QueryObject;
 }
 
-export const defaultState: QueryState = {
-  gender: [],
-  size: [],
-  color: [],
-  price: [],
-  sort: "featured",
-};
-
-export function parseQueryState(
-  params: Record<string, string | string[] | undefined>
-): QueryState {
-  const getArray = (k: string): string[] => {
-    const v = params[k];
-    if (!v) return [];
-    return Array.isArray(v) ? v : v.split(",");
-  };
-  return {
-    gender: getArray("gender"),
-    size: getArray("size"),
-    color: getArray("color"),
-    price: getArray("price"),
-    sort: (params.sort as SortOption) || "featured",
-  };
+export function stringifyQuery(query: QueryObject): string {
+  return qs.stringify(query, {
+    skipNull: true,
+    skipEmptyString: true,
+    arrayFormat: "bracket",
+  });
 }
 
-// New: parseFilterParams for server action consumption
-export function parseFilterParams(
-  params: Record<string, string | string[] | undefined>
-): ProductFilterParams {
-  const get = (k: string) => params[k];
-  const getList = (k: string): string[] => {
-    const v = get(k);
-    if (!v) return [];
-    return Array.isArray(v) ? v : v.split(",");
-  };
-  const toNum = (v: string | string[] | undefined) => {
-    if (!v) return undefined;
-    const s = Array.isArray(v) ? v[0] : v;
-    const n = Number(s);
-    return isNaN(n) ? undefined : n;
-  };
-  return {
-    search: (get("search") as string) || undefined,
-    gender: getList("gender"),
-    size: getList("size"),
-    color: getList("color"),
-    category: getList("category"),
-    brand: getList("brand"),
-    priceMin: toNum(get("priceMin")),
-    priceMax: toNum(get("priceMax")),
-    sortBy: (get("sort") as any) || undefined,
-    page: toNum(get("page")) || 1,
-    limit: toNum(get("limit")) || 24,
-  };
-}
-
-export function buildQuery(
-  prev: Record<string, any>,
-  updates: Partial<Record<keyof QueryState, string[] | string | undefined>>
+export function withUpdatedParams(
+  pathname: string,
+  currentSearch: string,
+  updates: QueryObject
 ): string {
-  const next: Record<string, any> = { ...prev };
-  for (const [k, v] of Object.entries(updates)) {
-    if (v === undefined) continue;
-    if (Array.isArray(v)) {
-      if (!v.length) delete next[k];
-      else next[k] = v.join(",");
-    } else if (v === "" || v == null) {
-      delete next[k];
+  const current = parseQuery(currentSearch);
+  const next: QueryObject = { ...current };
+
+  Object.entries(updates).forEach(([key, value]) => {
+    if (
+      value === undefined ||
+      value === null ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      delete next[key];
     } else {
-      next[k] = v;
+      next[key] = value as QueryValue;
     }
-  }
-  return qs.stringify(next, { sort: false });
-}
-
-// Mock product model similar to DB shape subset
-export interface MockProduct {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  gender: string; // men|women|unisex
-  colors: string[];
-  sizes: string[];
-  image: string;
-  inStock: boolean;
-  createdAt: string;
-}
-
-export const mockProducts: MockProduct[] = [
-  {
-    id: "1",
-    name: "Nike Air Force 1 Mid '07",
-    description: "Classic cushioning and street style.",
-    price: 98.3,
-    gender: "men",
-    colors: ["white", "black"],
-    sizes: ["8", "9", "10"],
-    image: "/shoes/shoe-1.jpg",
-    inStock: true,
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-  },
-  {
-    id: "2",
-    name: "Nike Court Vision Low Next Nature",
-    description: "Retro basketball inspiration.",
-    price: 98.3,
-    gender: "men",
-    colors: ["black", "blue"],
-    sizes: ["9", "10", "11"],
-    image: "/shoes/shoe-2.webp",
-    inStock: true,
-    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-  },
-  {
-    id: "3",
-    name: "Nike Air Max SYSTM",
-    description: "Visible Air cushioning everyday.",
-    price: 98.3,
-    gender: "men",
-    colors: ["red", "white"],
-    sizes: ["8", "9"],
-    image: "/shoes/shoe-3.webp",
-    inStock: true,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: "4",
-    name: "Nike Blazer Low '77 Jumbo",
-    description: "Bold Swoosh heritage style.",
-    price: 98.3,
-    gender: "women",
-    colors: ["white", "blue"],
-    sizes: ["7", "8", "9"],
-    image: "/shoes/shoe-15.avif",
-    inStock: true,
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-  },
-];
-
-export interface AppliedFilterItem {
-  key: string;
-  value: string;
-  label: string;
-}
-
-export function applyFiltersAndSort(
-  data: MockProduct[],
-  state: QueryState
-): { products: MockProduct[]; appliedFilters: AppliedFilterItem[] } {
-  let result = data.filter((p) => {
-    if (state.gender.length && !state.gender.includes(p.gender)) return false;
-    if (state.color.length && !p.colors.some((c) => state.color.includes(c)))
-      return false;
-    if (state.size.length && !p.sizes.some((s) => state.size.includes(s)))
-      return false;
-    if (state.price.length) {
-      const inRange = state.price.some((r) => {
-        const [min, max] = r.split("-").map(Number);
-        return (
-          p.price >= (isNaN(min) ? 0 : min) &&
-          p.price <= (isNaN(max) ? Infinity : max)
-        );
-      });
-      if (!inRange) return false;
-    }
-    return true;
   });
 
-  switch (state.sort) {
-    case "price_asc":
-      result.sort((a, b) => a.price - b.price);
-      break;
-    case "price_desc":
-      result.sort((a, b) => b.price - a.price);
-      break;
-    case "newest":
-      result.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      break;
-    default:
-      break; // featured retains original mock ordering
-  }
-
-  const applied: AppliedFilterItem[] = [];
-  state.gender.forEach((g) =>
-    applied.push({
-      key: "gender",
-      value: g,
-      label: g.charAt(0).toUpperCase() + g.slice(1),
-    })
-  );
-  state.color.forEach((c) =>
-    applied.push({ key: "color", value: c, label: c })
-  );
-  state.size.forEach((s) =>
-    applied.push({ key: "size", value: s, label: `Size ${s}` })
-  );
-  state.price.forEach((r) =>
-    applied.push({
-      key: "price",
-      value: r,
-      label: `$${r.replace("-", " to $")}`,
-    })
-  );
-
-  return { products: result, appliedFilters: applied };
+  const search = stringifyQuery(next);
+  return search ? `${pathname}?${search}` : pathname;
 }
 
-export function toggleMultiValue(
-  paramValues: string[],
+export function toggleArrayParam(
+  pathname: string,
+  currentSearch: string,
+  key: string,
   value: string
-): string[] {
-  return paramValues.includes(value)
-    ? paramValues.filter((v) => v !== value)
-    : [...paramValues, value];
+): string {
+  const current = parseQuery(currentSearch);
+  const arr = new Set<string>(
+    Array.isArray(current[key])
+      ? (current[key] as string[])
+      : current[key]
+      ? [String(current[key])]
+      : []
+  );
+  if (arr.has(value)) {
+    arr.delete(value);
+  } else {
+    arr.add(value);
+  }
+  const nextValues = Array.from(arr);
+  const updates: QueryObject = {
+    [key]: nextValues.length ? nextValues : undefined,
+  };
+  return withUpdatedParams(pathname, currentSearch, updates);
+}
+
+export function setParam(
+  pathname: string,
+  currentSearch: string,
+  key: string,
+  value: string | number | null | undefined
+): string {
+  return withUpdatedParams(pathname, currentSearch, {
+    [key]: value === null || value === undefined ? undefined : String(value),
+  });
+}
+
+export function removeParams(
+  pathname: string,
+  currentSearch: string,
+  keys: string[]
+): string {
+  const current = parseQuery(currentSearch);
+  keys.forEach((k) => delete current[k]);
+  const search = stringifyQuery(current);
+  return search ? `${pathname}?${search}` : pathname;
+}
+
+export function getArrayParam(search: string, key: string): string[] {
+  const q = parseQuery(search);
+  const v = q[key];
+  if (Array.isArray(v)) return v.map(String);
+  if (v === undefined) return [];
+  return [String(v)];
+}
+
+export function getStringParam(
+  search: string,
+  key: string
+): string | undefined {
+  const q = parseQuery(search);
+  const v = q[key];
+  if (v === undefined) return undefined;
+  return Array.isArray(v) ? (v[0] ? String(v[0]) : undefined) : String(v);
+}
+/* New helpers for products */
+
+export type NormalizedProductFilters = {
+  search?: string;
+  genderSlugs: string[];
+  sizeSlugs: string[];
+  colorSlugs: string[];
+  brandSlugs: string[];
+  categorySlugs: string[];
+  priceMin?: number;
+  priceMax?: number;
+  priceRanges: Array<[number | undefined, number | undefined]>;
+  sort: "featured" | "newest" | "price_asc" | "price_desc";
+  page: number;
+  limit: number;
+};
+
+export function parseFilterParams(
+  sp: Record<string, string | string[] | undefined>
+): NormalizedProductFilters {
+  const getArr = (k: string) => {
+    const v1 = sp[k];
+    const v2 = sp[`${k}[]`];
+    const arr1 = Array.isArray(v1)
+      ? v1.map(String)
+      : v1 === undefined
+      ? []
+      : [String(v1)];
+    const arr2 = Array.isArray(v2)
+      ? (v2 as string[]).map(String)
+      : v2 === undefined
+      ? []
+      : [String(v2 as string)];
+    return [...arr1, ...arr2];
+  };
+  const getStr = (k: string) => {
+    const v = sp[k] ?? sp[`${k}[]`];
+    if (v === undefined) return undefined;
+    return Array.isArray(v) ? (v[0] ? String(v[0]) : undefined) : String(v);
+  };
+
+  const search = getStr("search")?.trim() || undefined;
+
+  const genderSlugs = getArr("gender").map((s) => s.toLowerCase());
+  const sizeSlugs = getArr("size").map((s) => s.toLowerCase());
+  const colorSlugs = getArr("color").map((s) => s.toLowerCase());
+  const brandSlugs = getArr("brand").map((s) => s.toLowerCase());
+  const categorySlugs = getArr("category").map((s) => s.toLowerCase());
+
+  const priceRangesStr = getArr("price");
+  const priceRanges: Array<[number | undefined, number | undefined]> =
+    priceRangesStr
+      .map((r) => {
+        const [minStr, maxStr] = String(r).split("-");
+        const min = minStr ? Number(minStr) : undefined;
+        const max = maxStr ? Number(maxStr) : undefined;
+        return [
+          Number.isNaN(min as number) ? undefined : min,
+          Number.isNaN(max as number) ? undefined : max,
+        ] as [number | undefined, number | undefined];
+      })
+      .filter(() => true);
+
+  const priceMin = getStr("priceMin") ? Number(getStr("priceMin")) : undefined;
+  const priceMax = getStr("priceMax") ? Number(getStr("priceMax")) : undefined;
+
+  const sortParam = getStr("sort");
+  const sort: NormalizedProductFilters["sort"] =
+    sortParam === "price_asc" ||
+    sortParam === "price_desc" ||
+    sortParam === "newest" ||
+    sortParam === "featured"
+      ? sortParam
+      : "newest";
+
+  const page = Math.max(1, Number(getStr("page") ?? 1) || 1);
+  const limitRaw = Number(getStr("limit") ?? 24) || 24;
+  const limit = Math.max(1, Math.min(limitRaw, 60));
+
+  return {
+    search,
+    genderSlugs,
+    sizeSlugs,
+    colorSlugs,
+    brandSlugs,
+    categorySlugs,
+    priceMin:
+      priceMin !== undefined && !Number.isNaN(priceMin) ? priceMin : undefined,
+    priceMax:
+      priceMax !== undefined && !Number.isNaN(priceMax) ? priceMax : undefined,
+    priceRanges,
+    sort,
+    page,
+    limit,
+  };
+}
+
+export function buildProductQueryObject(filters: NormalizedProductFilters) {
+  return filters;
 }

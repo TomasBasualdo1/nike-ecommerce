@@ -1,5 +1,4 @@
-import "dotenv/config";
-import { db } from "./index";
+import { db } from "@/lib/db";
 import {
   genders,
   colors,
@@ -14,13 +13,19 @@ import {
   insertGenderSchema,
   insertColorSchema,
   insertSizeSchema,
+  insertBrandSchema,
+  insertCategorySchema,
+  insertCollectionSchema,
   insertProductSchema,
   insertVariantSchema,
-} from "./schema";
+  insertProductImageSchema,
+  type InsertProduct,
+  type InsertVariant,
+  type InsertProductImage,
+} from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { mkdirSync, existsSync, cpSync } from "fs";
 import { join, basename } from "path";
-
 type ProductRow = typeof products.$inferSelect;
 type VariantRow = typeof productVariants.$inferSelect;
 
@@ -96,22 +101,26 @@ async function seed() {
     }
 
     log("Seeding brand: Nike");
-    // brand schema not yet using zod; simple upsert-like logic
-    const brandExists = await db
-      .select()
-      .from(brands)
-      .where(eq(brands.slug, "nike"))
-      .limit(1);
-    if (!brandExists.length) {
-      await db.insert(brands).values({ name: "Nike", slug: "nike" });
+    const brand = insertBrandSchema.parse({
+      name: "Nike",
+      slug: "nike",
+      logoUrl: undefined,
+    });
+    {
+      const exists = await db
+        .select()
+        .from(brands)
+        .where(eq(brands.slug, brand.slug))
+        .limit(1);
+      if (!exists.length) await db.insert(brands).values(brand);
     }
 
     log("Seeding categories");
     const catRows = [
-      { name: "Shoes", slug: "shoes" },
-      { name: "Running Shoes", slug: "running-shoes" },
-      { name: "Lifestyle", slug: "lifestyle" },
-    ];
+      { name: "Shoes", slug: "shoes", parentId: null },
+      { name: "Running Shoes", slug: "running-shoes", parentId: null },
+      { name: "Lifestyle", slug: "lifestyle", parentId: null },
+    ].map((c) => insertCategorySchema.parse(c));
     for (const row of catRows) {
       const exists = await db
         .select()
@@ -123,8 +132,11 @@ async function seed() {
 
     log("Seeding collections");
     const collectionRows = [
-      { name: "Summer '25", slug: "summer-25" },
-      { name: "New Arrivals", slug: "new-arrivals" },
+      insertCollectionSchema.parse({ name: "Summer '25", slug: "summer-25" }),
+      insertCollectionSchema.parse({
+        name: "New Arrivals",
+        slug: "new-arrivals",
+      }),
     ];
     for (const row of collectionRows) {
       const exists = await db
@@ -205,15 +217,15 @@ async function seed() {
       const product = insertProductSchema.parse({
         name,
         description: desc,
-        categoryId: catPick?.id ?? undefined,
-        genderId: gender?.id ?? undefined,
-        brandId: nike?.id ?? undefined,
+        categoryId: catPick?.id ?? null,
+        genderId: gender?.id ?? null,
+        brandId: nike?.id ?? null,
         isPublished: true,
       });
 
       const retP = await db
         .insert(products)
-        .values(product as any)
+        .values(product as InsertProduct)
         .returning();
       const insertedProduct = (retP as ProductRow[])[0];
       const colorChoices = pick(
@@ -253,7 +265,7 @@ async function seed() {
           });
           const retV = await db
             .insert(productVariants)
-            .values(variant as any)
+            .values(variant as InsertVariant)
             .returning();
           const created = (retV as VariantRow[])[0];
           variantIds.push(created.id);
@@ -274,12 +286,13 @@ async function seed() {
       const dest = join(uploadsRoot, destName);
       try {
         cpSync(src, dest);
-        await db.insert(productImages).values({
+        const img: InsertProductImage = insertProductImageSchema.parse({
           productId: insertedProduct.id,
           url: `/static/uploads/shoes/${destName}`,
           sortOrder: 0,
           isPrimary: true,
         });
+        await db.insert(productImages).values(img);
       } catch (e) {
         err("Failed to copy product image", { src, dest, e });
       }

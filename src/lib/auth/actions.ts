@@ -1,8 +1,8 @@
 "use server";
 
-import { z } from "zod";
-import { auth } from "../auth";
 import { cookies, headers } from "next/headers";
+import { z } from "zod";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { guests } from "@/lib/db/schema/index";
 import { and, eq, lt } from "drizzle-orm";
@@ -13,23 +13,12 @@ const COOKIE_OPTIONS = {
   secure: true as const,
   sameSite: "strict" as const,
   path: "/" as const,
-  maxAge: 60 * 60 * 24 * 7,
+  maxAge: 60 * 60 * 24 * 7, // 7 days
 };
 
 const emailSchema = z.string().email();
-const passwordSchema = z.string().min(8);
-const nameSchema = z.string().min(2).max(100);
-
-const signUpSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
-  name: nameSchema,
-});
-
-const signInSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
-});
+const passwordSchema = z.string().min(8).max(128);
+const nameSchema = z.string().min(1).max(100);
 
 export async function createGuestSession() {
   const cookieStore = await cookies();
@@ -51,7 +40,7 @@ export async function createGuestSession() {
   return { ok: true, sessionToken };
 }
 
-export async function guestSession(sessionToken: string) {
+export async function guestSession() {
   const cookieStore = await cookies();
   const token = (await cookieStore).get("guest_session")?.value;
   if (!token) {
@@ -65,11 +54,17 @@ export async function guestSession(sessionToken: string) {
   return { sessionToken: token };
 }
 
+const signUpSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+  name: nameSchema,
+});
+
 export async function signUp(formData: FormData) {
   const rawData = {
+    name: formData.get("name") as string,
     email: formData.get("email") as string,
     password: formData.get("password") as string,
-    name: formData.get("name") as string,
   };
 
   const data = signUpSchema.parse(rawData);
@@ -85,6 +80,11 @@ export async function signUp(formData: FormData) {
   await migrateGuestToUser();
   return { ok: true, userId: res.user?.id };
 }
+
+const signInSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+});
 
 export async function signIn(formData: FormData) {
   const rawData = {
@@ -105,11 +105,6 @@ export async function signIn(formData: FormData) {
   return { ok: true, userId: res.user?.id };
 }
 
-export async function signOut(sessionToken: string) {
-  await auth.api.signOut({ headers: {} });
-  return { ok: true };
-}
-
 export async function getCurrentUser() {
   try {
     const session = await auth.api.getSession({
@@ -121,6 +116,11 @@ export async function getCurrentUser() {
     console.log(e);
     return null;
   }
+}
+
+export async function signOut() {
+  await auth.api.signOut({ headers: {} });
+  return { ok: true };
 }
 
 export async function mergeGuestCartWithUserCart() {

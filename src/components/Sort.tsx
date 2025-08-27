@@ -1,40 +1,49 @@
 "use client";
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { buildQuery, parseQueryState, SortOption } from "@/lib/utils/query";
+import { setParam } from "@/lib/utils/query";
+import { useMemo } from "react";
 
-interface SortProps {
-  sort: SortOption;
-}
+const OPTIONS = [
+  { label: "Featured", value: "featured" },
+  { label: "Newest", value: "newest" },
+  { label: "Price (High → Low)", value: "price_desc" },
+  { label: "Price (Low → High)", value: "price_asc" },
+] as const;
 
-const options: { value: SortOption; label: string }[] = [
-  { value: "featured", label: "Featured" },
-  { value: "newest", label: "Newest" },
-  { value: "price_desc", label: "Price (High → Low)" },
-  { value: "price_asc", label: "Price (Low → High)" },
-];
-
-export default function Sort({ sort }: SortProps) {
+export default function Sort() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const state = parseQueryState(Object.fromEntries(searchParams.entries()));
+  const search = useMemo(() => `?${searchParams.toString()}`, [searchParams]);
+  const selected = searchParams.get("sort") ?? "featured";
+
+  const onChange = (value: string) => {
+    const withSort = setParam(pathname, search, "sort", value);
+    const withPageReset = setParam(
+      pathname,
+      new URL(withSort, "http://dummy").search,
+      "page",
+      "1"
+    );
+    router.push(withPageReset, { scroll: false });
+  };
 
   return (
-    <select
-      value={sort}
-      onChange={(e) => {
-        const prev = Object.fromEntries(searchParams.entries());
-        const next = buildQuery(prev, { sort: e.target.value });
-        router.push(`${pathname}?${next}`, { scroll: false });
-      }}
-      className="border rounded-md px-3 py-2 text-sm"
-      aria-label="Sort products"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <label className="inline-flex items-center gap-2">
+      <span className="text-body text-dark-900">Sort by</span>
+      <select
+        className="rounded-md border border-light-300 bg-light-100 px-3 py-2 text-body"
+        value={selected}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label="Sort products"
+      >
+        {OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
