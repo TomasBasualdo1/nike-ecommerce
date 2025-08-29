@@ -536,3 +536,55 @@ export async function getRecommendedProducts(
   }
   return out;
 }
+
+export async function getFeaturedProducts(limit: number = 4): Promise<ProductListItem[]> {
+  // Get random products by ordering by random and limiting
+  const variantsSubQuery = db
+    .select({
+      productId: productVariants.productId,
+      displayPrice: sql<number>`coalesce(${productVariants.salePrice}, ${productVariants.price})::numeric`.as("displayPrice"),
+    })
+    .from(productVariants)
+    .as("v");
+
+  const imagesSubQuery = db
+    .select({
+      productId: productImages.productId,
+      url: productImages.url,
+      rn: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as(
+        "rn"
+      ),
+    })
+    .from(productImages)
+    .where(isNull(productImages.variantId))
+    .as("pi");
+
+  const rows = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      createdAt: products.createdAt,
+      subtitle: genders.label,
+      minPrice: sql<number | null>`min(${variantsSubQuery.displayPrice})`,
+      maxPrice: sql<number | null>`max(${variantsSubQuery.displayPrice})`,
+      imageUrl: sql<string | null>`max(case when ${imagesSubQuery.rn} = 1 then ${imagesSubQuery.url} else null end)`,
+    })
+    .from(products)
+    .leftJoin(variantsSubQuery, eq(products.id, variantsSubQuery.productId))
+    .leftJoin(imagesSubQuery, eq(imagesSubQuery.productId, products.id))
+    .leftJoin(genders, eq(genders.id, products.genderId))
+    .where(eq(products.isPublished, true))
+    .groupBy(products.id, genders.label)
+    .orderBy(sql`random()`) // PostgreSQL random ordering
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    imageUrl: r.imageUrl,
+    minPrice: r.minPrice === null ? null : Number(r.minPrice),
+    maxPrice: r.maxPrice === null ? null : Number(r.maxPrice),
+    createdAt: r.createdAt,
+    subtitle: r.subtitle ? `${r.subtitle} Shoes` : null,
+  }));
+}

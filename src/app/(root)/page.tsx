@@ -1,63 +1,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import Card from '@/components/Card';
+import { getFeaturedProducts } from '@/lib/actions/product';
 
-// Sample product data for demonstration
-const featuredProducts = [
-  {
-    id: '1',
-    title: 'Nike Air Force 1 Mid',
-    description: 'The Nike Air Force 1 Mid delivers unrivaled, all-day comfort with its classic design and premium materials.',
-    price: 150.00,
-    originalPrice: 180.00,
-    image: '/shoes/shoe-1.jpg',
-    category: 'Lifestyle',
-    inStock: true,
-    isNew: true,
-    rating: 4.5,
-    reviewCount: 128,
-    href: '/products/air-force-1-mid',
-  },
-  {
-    id: '2',
-    title: 'Nike ZoomX Vaporfly',
-    description: 'The Nike ZoomX Vaporfly is designed for elite runners who want to push their limits.',
-    price: 250.00,
-    image: '/shoes/shoe-2.webp',
-    category: 'Running',
-    inStock: true,
-    rating: 4.8,
-    reviewCount: 89,
-    href: '/products/zoomx-vaporfly',
-  },
-  {
-    id: '3',
-    title: 'Nike Air Jordan 1',
-    description: 'The Air Jordan 1 is a classic basketball shoe that has transcended the court.',
-    price: 170.00,
-    image: '/shoes/shoe-3.webp',
-    category: 'Basketball',
-    inStock: true,
-    isSale: true,
-    rating: 4.7,
-    reviewCount: 256,
-    href: '/products/air-jordan-1',
-  },
-  {
-    id: '4',
-    title: 'Nike Free Run',
-    description: 'The Nike Free Run mimics natural foot movement for a barefoot-like feel.',
-    price: 120.00,
-    image: '/shoes/shoe-4.webp',
-    category: 'Training',
-    inStock: false,
-    rating: 4.3,
-    reviewCount: 67,
-    href: '/products/free-run',
-  },
-];
-
-export default function Home() {
+export default async function Home() {
+  // Fetch 4 random products from the database
+  const featuredProducts = await getFeaturedProducts(4);
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -117,7 +65,19 @@ export default function Home() {
           {featuredProducts.map((product) => (
             <Card
               key={product.id}
-              {...product}
+              id={product.id}
+              title={product.name}
+              image={product.imageUrl || '/shoes/shoe-1.jpg'}
+              price={Number(product.minPrice || 0)}
+              originalPrice={
+                product.minPrice !== null &&
+                product.maxPrice !== null &&
+                product.maxPrice !== product.minPrice
+                  ? Number(product.maxPrice)
+                  : undefined
+              }
+              category={product.subtitle || undefined}
+              href={`/products/${product.id}`}
               variant="featured"
             />
           ))}

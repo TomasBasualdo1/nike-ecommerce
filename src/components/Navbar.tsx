@@ -11,8 +11,8 @@ export default function Navbar() {
   const { getItemCount } = useCartStore();
 
   const navigationLinks = [
-    { name: "Men", href: "/men" },
-    { name: "Women", href: "/women" },
+    { name: "Men", href: "/products?gender[]=men" },
+    { name: "Women", href: "/products?gender[]=women" },
     { name: "Kids", href: "/kids" },
     { name: "Collections", href: "/collections" },
     { name: "Contact", href: "/contact" },
