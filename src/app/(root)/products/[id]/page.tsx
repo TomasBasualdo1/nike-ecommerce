@@ -7,7 +7,6 @@ import {
   SizePicker,
 } from "@/components";
 import { Heart, ShoppingBag, Star } from "lucide-react";
-import ColorSwatches from "@/components/ColorSwatches";
 import {
   getProduct,
   getProductReviews,
@@ -150,27 +149,25 @@ export default async function ProductDetailPage({
 
   const { product, variants, images } = data;
 
-  const galleryVariants: GalleryVariant[] = variants
-    .map((v) => {
-      const imgs = images
-        .filter((img) => img.variantId === v.id)
-        .map((img) => img.url);
-
-      const fallback = images
-        .filter((img) => img.variantId === null)
-        .sort((a, b) => {
-          if (a.isPrimary && !b.isPrimary) return -1;
-          if (!a.isPrimary && b.isPrimary) return 1;
-          return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-        })
-        .map((img) => img.url);
-
-      return {
-        color: v.color?.name || "Default",
-        images: imgs.length ? imgs : fallback,
-      };
+  // Since images aren't variant-specific, just use all product images
+  const productImages = images
+    .sort((a, b) => {
+      if (a.isPrimary && !b.isPrimary) return -1;
+      if (!a.isPrimary && b.isPrimary) return 1;
+      return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
     })
-    .filter((gv) => gv.images.length > 0);
+    .map((img) => img.url);
+
+  // Create a single gallery variant with all images
+  const galleryVariants: GalleryVariant[] =
+    productImages.length > 0
+      ? [
+          {
+            color: "Default",
+            images: productImages,
+          },
+        ]
+      : [];
 
   const defaultVariant =
     variants.find((v) => v.id === product.defaultVariantId) || variants[0];
@@ -240,7 +237,6 @@ export default async function ProductDetailPage({
             )}
           </div>
 
-          <ColorSwatches productId={product.id} variants={galleryVariants} />
           <SizePicker />
 
           <div className="flex flex-col gap-3">

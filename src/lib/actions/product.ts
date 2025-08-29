@@ -55,38 +55,31 @@ export type GetAllProductsResult = {
 export async function getAllProducts(
   filters: NormalizedProductFilters
 ): Promise<GetAllProductsResult> {
-  const conds: SQL[] = [eq(products.isPublished, true)];
+  // --- 1. Construir las condiciones de filtrado ---
+  const productConditions: SQL[] = [eq(products.isPublished, true)];
 
   if (filters.search) {
     const pattern = `%${filters.search}%`;
-    conds.push(
+    productConditions.push(
       or(ilike(products.name, pattern), ilike(products.description, pattern))!
     );
   }
-
   if (filters.genderSlugs.length) {
-    conds.push(inArray(genders.slug, filters.genderSlugs));
+    productConditions.push(inArray(genders.slug, filters.genderSlugs));
   }
-
   if (filters.brandSlugs.length) {
-    conds.push(inArray(brands.slug, filters.brandSlugs));
+    productConditions.push(inArray(brands.slug, filters.brandSlugs));
   }
-
   if (filters.categorySlugs.length) {
-    conds.push(inArray(categories.slug, filters.categorySlugs));
+    productConditions.push(inArray(categories.slug, filters.categorySlugs));
   }
 
-  const hasSize = filters.sizeSlugs.length > 0;
-  const hasColor = filters.colorSlugs.length > 0;
-  const hasPrice = !!(
-    filters.priceMin !== undefined ||
-    filters.priceMax !== undefined ||
-    filters.priceRanges.length
-  );
+  // Se define el precio a usar para filtros y ordenamiento: el precio de oferta si existe, si no, el original.
+  const displayPrice = sql<number>`coalesce(${productVariants.salePrice}, ${productVariants.price})::numeric`;
 
-  const variantConds: SQL[] = [];
-  if (hasSize) {
-    variantConds.push(
+  const variantConditions: SQL[] = [];
+  if (filters.sizeSlugs.length > 0) {
+    variantConditions.push(
       inArray(
         productVariants.sizeId,
         db
@@ -96,8 +89,8 @@ export async function getAllProducts(
       )
     );
   }
-  if (hasColor) {
-    variantConds.push(
+  if (filters.colorSlugs.length > 0) {
+    variantConditions.push(
       inArray(
         productVariants.colorId,
         db
@@ -107,137 +100,129 @@ export async function getAllProducts(
       )
     );
   }
-  if (hasPrice) {
+  if (
+    filters.priceRanges.length > 0 ||
+    filters.priceMin !== undefined ||
+    filters.priceMax !== undefined
+  ) {
     const priceBounds: SQL[] = [];
     if (filters.priceRanges.length) {
       for (const [min, max] of filters.priceRanges) {
         const subConds: SQL[] = [];
-        if (min !== undefined) {
-          subConds.push(sql`(${productVariants.price})::numeric >= ${min}`);
-        }
-        if (max !== undefined) {
-          subConds.push(sql`(${productVariants.price})::numeric <= ${max}`);
-        }
+        if (min !== undefined) subConds.push(sql`${displayPrice} >= ${min}`);
+        if (max !== undefined) subConds.push(sql`${displayPrice} <= ${max}`);
         if (subConds.length) priceBounds.push(and(...subConds)!);
       }
     }
     if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
       const subConds: SQL[] = [];
       if (filters.priceMin !== undefined)
-        subConds.push(
-          sql`(${productVariants.price})::numeric >= ${filters.priceMin}`
-        );
+        subConds.push(sql`${displayPrice} >= ${filters.priceMin}`);
       if (filters.priceMax !== undefined)
-        subConds.push(
-          sql`(${productVariants.price})::numeric <= ${filters.priceMax}`
-        );
+        subConds.push(sql`${displayPrice} <= ${filters.priceMax}`);
       if (subConds.length) priceBounds.push(and(...subConds)!);
     }
-    if (priceBounds.length) {
-      variantConds.push(or(...priceBounds)!);
-    }
+    if (priceBounds.length) variantConditions.push(or(...priceBounds)!);
   }
 
-  const variantJoin = db
+  const hasVariantFilters = variantConditions.length > 0;
+  const finalProductWhere = and(...productConditions);
+
+  // --- 2. Crear subconsultas optimizadas ---
+
+  const variantsSubQuery = db
     .select({
-      variantId: productVariants.id,
       productId: productVariants.productId,
-      price: sql<number>`${productVariants.price}::numeric`.as("price"),
-      colorId: productVariants.colorId,
-      sizeId: productVariants.sizeId,
+      displayPrice: displayPrice.as("displayPrice"), // Use displayPrice consistently
     })
     .from(productVariants)
-    .where(variantConds.length ? and(...variantConds) : undefined)
+    .where(hasVariantFilters ? and(...variantConditions) : undefined)
     .as("v");
-  const imagesJoin = hasColor
-    ? db
-        .select({
-          productId: productImages.productId,
-          url: productImages.url,
-          rn: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as(
-            "rn"
-          ),
-        })
-        .from(productImages)
-        .innerJoin(
-          productVariants,
-          eq(productVariants.id, productImages.variantId)
-        )
-        .where(
-          inArray(
-            productVariants.colorId,
-            db
-              .select({ id: colors.id })
-              .from(colors)
-              .where(inArray(colors.slug, filters.colorSlugs))
-          )
-        )
-        .as("pi")
-    : db
-        .select({
-          productId: productImages.productId,
-          url: productImages.url,
-          rn: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as(
-            "rn"
-          ),
-        })
-        .from(productImages)
-        .where(isNull(productImages.variantId))
-        .as("pi");
 
-  const baseWhere = conds.length ? and(...conds) : undefined;
+  const imagesSubQuery = db
+    .select({
+      productId: productImages.productId,
+      url: productImages.url,
+      rn: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as(
+        "rn"
+      ),
+    })
+    .from(productImages)
+    .where(isNull(productImages.variantId))
+    .as("pi");
 
-  const priceAgg = {
-    minPrice: sql<number | null>`min(${variantJoin.price})`,
-    maxPrice: sql<number | null>`max(${variantJoin.price})`,
+  // --- 3. Construcción de la consulta principal de productos ---
+
+  const fields = {
+    id: products.id,
+    name: products.name,
+    createdAt: products.createdAt,
+    subtitle: genders.label,
+    minPrice: sql<number | null>`min(${variantsSubQuery.displayPrice})`,
+    maxPrice: sql<number | null>`max(${variantsSubQuery.displayPrice})`,
+    imageUrl: sql<
+      string | null
+    >`max(case when ${imagesSubQuery.rn} = 1 then ${imagesSubQuery.url} else null end)`,
   };
 
-  const imageAgg = sql<
-    string | null
-  >`max(case when ${imagesJoin.rn} = 1 then ${imagesJoin.url} else null end)`;
+  const qb = hasVariantFilters
+    ? db
+        .select(fields)
+        .from(products)
+        .innerJoin(
+          variantsSubQuery,
+          eq(products.id, variantsSubQuery.productId)
+        )
+        .$dynamic()
+    : db
+        .select(fields)
+        .from(products)
+        .leftJoin(variantsSubQuery, eq(products.id, variantsSubQuery.productId))
+        .$dynamic();
 
+  // La lógica de ordenamiento ahora usa el precio correcto (displayPrice) que incluye descuentos.
   const primaryOrder =
     filters.sort === "price_asc"
-      ? asc(sql`min(${variantJoin.price})`)
+      ? asc(sql`min(${variantsSubQuery.displayPrice})`)
       : filters.sort === "price_desc"
-      ? desc(sql`max(${variantJoin.price})`)
+      ? desc(sql`min(${variantsSubQuery.displayPrice})`) // Use desc with min (opposite of asc with min)
       : desc(products.createdAt);
 
   const page = Math.max(1, filters.page);
   const limit = Math.max(1, Math.min(filters.limit, 60));
   const offset = (page - 1) * limit;
 
-  const rows = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      createdAt: products.createdAt,
-      subtitle: genders.label,
-      minPrice: priceAgg.minPrice,
-      maxPrice: priceAgg.maxPrice,
-      imageUrl: imageAgg,
-    })
-    .from(products)
-    .leftJoin(variantJoin, eq(variantJoin.productId, products.id))
-    .leftJoin(imagesJoin, eq(imagesJoin.productId, products.id))
+  const rows = await qb
+    .leftJoin(imagesSubQuery, eq(imagesSubQuery.productId, products.id))
     .leftJoin(genders, eq(genders.id, products.genderId))
     .leftJoin(brands, eq(brands.id, products.brandId))
     .leftJoin(categories, eq(categories.id, products.categoryId))
-    .where(baseWhere)
-    .groupBy(products.id, products.name, products.createdAt, genders.label)
-    .orderBy(primaryOrder, desc(products.createdAt), asc(products.id))
+    .where(finalProductWhere)
+    .groupBy(products.id, genders.label)
+    .orderBy(primaryOrder, desc(products.createdAt)) // Se añade un segundo criterio de ordenamiento para consistencia
     .limit(limit)
     .offset(offset);
-  const countRows = await db
-    .select({
-      cnt: count(sql<number>`distinct ${products.id}`),
-    })
-    .from(products)
-    .leftJoin(variantJoin, eq(variantJoin.productId, products.id))
+
+  // --- 4. Construcción de la consulta de conteo ---
+
+  const countQb = hasVariantFilters
+    ? db
+        .select({ cnt: count() })
+        .from(products)
+        .innerJoin(
+          variantsSubQuery,
+          eq(products.id, variantsSubQuery.productId)
+        )
+        .$dynamic()
+    : db.select({ cnt: count() }).from(products).$dynamic();
+
+  const countRows = await countQb
     .leftJoin(genders, eq(genders.id, products.genderId))
     .leftJoin(brands, eq(brands.id, products.brandId))
     .leftJoin(categories, eq(categories.id, products.categoryId))
-    .where(baseWhere);
+    .where(finalProductWhere);
+
+  // --- 5. Formatear y devolver el resultado ---
 
   const productsOut: ProductListItem[] = rows.map((r) => ({
     id: r.id,
@@ -432,6 +417,7 @@ export async function getProduct(
     images: Array.from(imagesMap.values()),
   };
 }
+
 export type Review = {
   id: string;
   author: string;
