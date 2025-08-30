@@ -1,7 +1,7 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import Card from '@/components/Card';
-import { getFeaturedProducts } from '@/lib/actions/product';
+import Link from "next/link";
+import Image from "next/image";
+import Card from "@/components/Card";
+import { getFeaturedProducts } from "@/lib/actions/product";
 
 export default async function Home() {
   // Fetch 4 random products from the database
@@ -18,8 +18,9 @@ export default async function Home() {
                 Just Do It
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-light-400 max-w-2xl">
-                Discover the latest in athletic footwear and apparel. From running to basketball, 
-                we have everything you need to perform at your best.
+                Discover the latest in athletic footwear and apparel. From
+                running to basketball, we have everything you need to perform at
+                your best.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
@@ -56,18 +57,18 @@ export default async function Home() {
             Featured Products
           </h2>
           <p className="text-dark-500 text-lg max-w-2xl mx-auto">
-            Discover our most popular athletic footwear and apparel. 
-            Each product is designed to help you achieve your goals.
+            Discover our most popular athletic footwear and apparel. Each
+            product is designed to help you achieve your goals.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredProducts.map((product) => (
             <Card
               key={product.id}
               id={product.id}
               title={product.name}
-              image={product.imageUrl || '/shoes/shoe-1.jpg'}
+              image={product.imageUrl || "/shoes/shoe-1.jpg"}
               price={Number(product.minPrice || 0)}
               originalPrice={
                 product.minPrice !== null &&
@@ -82,7 +83,7 @@ export default async function Home() {
             />
           ))}
         </div>
-        
+
         <div className="text-center mt-12">
           <Link
             href="/products"
@@ -104,26 +105,26 @@ export default async function Home() {
               Find the perfect gear for your sport and lifestyle
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { 
-                name: 'Running', 
-                image: '/shoes/shoe-5.avif', 
-                href: '/categories/running',
-                description: 'Performance footwear for every runner'
+              {
+                name: "Lifestyle",
+                image: "/shoes/shoe-5.avif",
+                href: "/products?category[]=running&category[]=lifestyle",
+                description: "Everyday shoes for all-day comfort",
               },
-              { 
-                name: 'Basketball', 
-                image: '/shoes/shoe-6.avif', 
-                href: '/categories/basketball',
-                description: 'Court-ready shoes for the game'
+              {
+                name: "Shoes",
+                image: "/shoes/shoe-6.avif",
+                href: "//products?category[]=running&category[]=shoes",
+                description: "Versatile shoes for all your workouts",
               },
-              { 
-                name: 'Training', 
-                image: '/shoes/shoe-7.avif', 
-                href: '/categories/training',
-                description: 'Versatile shoes for all your workouts'
+              {
+                name: "Running Shoes",
+                image: "/shoes/shoe-7.avif",
+                href: "/products?category[]=running&category[]=running-shoes",
+                description: "Performance footwear for every runner",
               },
             ].map((category) => (
               <Link
@@ -161,8 +162,9 @@ export default async function Home() {
             Ready to Elevate Your Game?
           </h2>
           <p className="text-light-400 text-lg mb-8 max-w-2xl mx-auto">
-            Join millions of athletes worldwide who trust Nike for their performance needs. 
-            Discover your potential with our latest collection.
+            Join millions of athletes worldwide who trust Nike for their
+            performance needs. Discover your potential with our latest
+            collection.
           </p>
           <Link
             href="/products"

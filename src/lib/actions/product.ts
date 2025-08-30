@@ -494,6 +494,7 @@ export async function getRecommendedProducts(
       ),
     })
     .from(productImages)
+    .where(isNull(productImages.variantId))
     .as("pi");
 
   const priority = sql<number>`
@@ -524,25 +525,28 @@ export async function getRecommendedProducts(
 
   const out: RecommendedProduct[] = [];
   for (const r of rows) {
-    const img = r.imageUrl?.trim();
-    if (!img) continue;
     out.push({
       id: r.id,
       title: r.title,
       price: r.minPrice === null ? null : Number(r.minPrice),
-      imageUrl: img,
+      imageUrl: r.imageUrl?.trim() || "", // Allow empty string, will be handled by fallback in component
     });
     if (out.length >= 6) break;
   }
   return out;
 }
 
-export async function getFeaturedProducts(limit: number = 4): Promise<ProductListItem[]> {
+export async function getFeaturedProducts(
+  limit: number = 4
+): Promise<ProductListItem[]> {
   // Get random products by ordering by random and limiting
   const variantsSubQuery = db
     .select({
       productId: productVariants.productId,
-      displayPrice: sql<number>`coalesce(${productVariants.salePrice}, ${productVariants.price})::numeric`.as("displayPrice"),
+      displayPrice:
+        sql<number>`coalesce(${productVariants.salePrice}, ${productVariants.price})::numeric`.as(
+          "displayPrice"
+        ),
     })
     .from(productVariants)
     .as("v");
@@ -567,7 +571,9 @@ export async function getFeaturedProducts(limit: number = 4): Promise<ProductLis
       subtitle: genders.label,
       minPrice: sql<number | null>`min(${variantsSubQuery.displayPrice})`,
       maxPrice: sql<number | null>`max(${variantsSubQuery.displayPrice})`,
-      imageUrl: sql<string | null>`max(case when ${imagesSubQuery.rn} = 1 then ${imagesSubQuery.url} else null end)`,
+      imageUrl: sql<
+        string | null
+      >`max(case when ${imagesSubQuery.rn} = 1 then ${imagesSubQuery.url} else null end)`,
     })
     .from(products)
     .leftJoin(variantsSubQuery, eq(products.id, variantsSubQuery.productId))

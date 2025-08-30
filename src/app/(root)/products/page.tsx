@@ -28,6 +28,18 @@ export default async function ProductsPage({
   (sp.size ? (Array.isArray(sp.size) ? sp.size : [sp.size]) : []).forEach((s) =>
     activeBadges.push(`Size: ${s}`)
   );
+  (sp.category
+    ? Array.isArray(sp.category)
+      ? sp.category
+      : [sp.category]
+    : []
+  ).forEach((c) => {
+    const label =
+      String(c) === "running-shoes"
+        ? "Running Shoes"
+        : String(c)[0].toUpperCase() + String(c).slice(1);
+    activeBadges.push(label);
+  });
   (sp.color ? (Array.isArray(sp.color) ? sp.color : [sp.color]) : []).forEach(
     (c) => activeBadges.push(String(c)[0].toUpperCase() + String(c).slice(1))
   );

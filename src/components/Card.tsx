@@ -44,17 +44,21 @@ export default function Card({
 }: CardProps) {
   const { addItem } = useCartStore();
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     addItem({
       id,
       name: title,
-      price,
+      price: typeof price === "string" ? parseFloat(price) : price,
       image,
     });
     onAddToCart?.();
   };
 
-  const handleAddToWishlist = () => {
+  const handleAddToWishlist = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     onAddToWishlist?.();
   };
 
@@ -152,13 +156,18 @@ export default function Card({
         {/* Price */}
         <div className="flex items-center gap-2">
           <span className="text-dark-900 font-bold text-lg">
-            ${price.toFixed(2)}
+            $
+            {typeof price === "string"
+              ? parseFloat(price).toFixed(2)
+              : price.toFixed(2)}
           </span>
-          {originalPrice && originalPrice > price && (
-            <span className="text-dark-500 line-through text-sm">
-              ${originalPrice.toFixed(2)}
-            </span>
-          )}
+          {originalPrice &&
+            originalPrice >
+              (typeof price === "string" ? parseFloat(price) : price) && (
+              <span className="text-dark-500 line-through text-sm">
+                ${originalPrice.toFixed(2)}
+              </span>
+            )}
         </div>
 
         {/* Stock Status */}

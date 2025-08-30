@@ -15,7 +15,6 @@ export default function Navbar() {
     { name: "Women", href: "/products?gender[]=women" },
     { name: "Kids", href: "/kids" },
     { name: "Collections", href: "/collections" },
-    { name: "Contact", href: "/contact" },
   ];
 
   const toggleMobileMenu = () => {

@@ -3,22 +3,22 @@ import Image from "next/image";
 
 const collections = [
   {
-    name: "Running Essentials",
-    description: "High-performance shoes and apparel for every runner",
-    image: "/collections/running.jpg",
-    href: "/products?category=running",
+    name: "Lifestyle",
+    description: "Everyday shoes for all-day comfort",
+    image: "/shoes/shoe-5.avif",
+    href: "/products?category[]=running&category[]=lifestyle",
   },
   {
-    name: "Basketball Gear",
-    description: "Court-ready shoes and apparel designed for speed and power",
-    image: "/collections/basketball.jpg",
-    href: "/products?category=basketball",
+    name: "Shoes",
+    description: "Versatile shoes for all your workouts",
+    image: "/shoes/shoe-6.avif",
+    href: "/products?category[]=running&category[]=shoes",
   },
   {
-    name: "Training Collection",
-    description: "Versatile footwear and apparel for every workout",
-    image: "/collections/training.jpg",
-    href: "/products?category=training",
+    name: "Running Shoes",
+    description: "Performance footwear for every runner",
+    image: "/shoes/shoe-7.avif",
+    href: "/products?category[]=running&category[]=running-shoes",
   },
 ];
 

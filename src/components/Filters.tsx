@@ -9,6 +9,7 @@ import {
 } from "@/lib/utils/query";
 
 const GENDERS = ["men", "women", "unisex"] as const;
+const CATEGORIES = ["shoes", "running-shoes", "lifestyle"] as const;
 const SIZES = ["7", "8", "9", "10", "11", "12"] as const;
 const COLORS = ["black", "white", "red", "green", "blue", "grey"] as const;
 const PRICES = [
@@ -18,7 +19,7 @@ const PRICES = [
   { id: "150-", label: "Over $150" },
 ] as const;
 
-type GroupKey = "gender" | "size" | "color" | "price";
+type GroupKey = "gender" | "category" | "size" | "color" | "price";
 
 export default function Filters() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function Filters() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<GroupKey, boolean>>({
     gender: true,
+    category: true,
     size: true,
     color: true,
     price: true,
@@ -36,6 +38,7 @@ export default function Filters() {
 
   const activeCounts = {
     gender: getArrayParam(search, "gender").length,
+    category: getArrayParam(search, "category").length,
     size: getArrayParam(search, "size").length,
     color: getArrayParam(search, "color").length,
     price: getArrayParam(search, "price").length,
@@ -53,6 +56,7 @@ export default function Filters() {
   const clearAll = () => {
     const url = removeParams(pathname, search, [
       "gender",
+      "category",
       "size",
       "color",
       "price",
@@ -143,6 +147,38 @@ export default function Filters() {
                     className="text-body text-dark-900"
                   >
                     {g[0].toUpperCase() + g.slice(1)}
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </Group>
+
+        <Group
+          title={`Category ${
+            activeCounts.category ? `(${activeCounts.category})` : ""
+          }`}
+          k="category"
+        >
+          <ul className="space-y-2">
+            {CATEGORIES.map((c) => {
+              const checked = getArrayParam(search, "category").includes(c);
+              return (
+                <li key={c} className="flex items-center gap-2">
+                  <input
+                    id={`category-${c}`}
+                    type="checkbox"
+                    className="h-4 w-4 accent-dark-900"
+                    checked={checked}
+                    onChange={() => onToggle("category" as GroupKey, c)}
+                  />
+                  <label
+                    htmlFor={`category-${c}`}
+                    className="text-body text-dark-900"
+                  >
+                    {c === "running-shoes"
+                      ? "Running Shoes"
+                      : c[0].toUpperCase() + c.slice(1)}
                   </label>
                 </li>
               );
@@ -266,6 +302,35 @@ export default function Filters() {
                         />
                         <label htmlFor={`m-gender-${g}`} className="text-body">
                           {g[0].toUpperCase() + g.slice(1)}
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Group>
+
+              <Group title="Category" k="category">
+                <ul className="space-y-2">
+                  {CATEGORIES.map((c) => {
+                    const checked = getArrayParam(search, "category").includes(
+                      c
+                    );
+                    return (
+                      <li key={c} className="flex items-center gap-2">
+                        <input
+                          id={`m-category-${c}`}
+                          type="checkbox"
+                          className="h-4 w-4 accent-dark-900"
+                          checked={checked}
+                          onChange={() => onToggle("category", c)}
+                        />
+                        <label
+                          htmlFor={`m-category-${c}`}
+                          className="text-body"
+                        >
+                          {c === "running-shoes"
+                            ? "Running Shoes"
+                            : c[0].toUpperCase() + c.slice(1)}
                         </label>
                       </li>
                     );
