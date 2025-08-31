@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCartStore } from "@/lib/store";
+import { useCartStore } from "@/store/cart";
 import { ShoppingCart } from "lucide-react";
 
 interface Product {
@@ -27,7 +27,6 @@ export default function ProductCard({ product }: ProductCardProps) {
       name: product.name,
       price: product.price,
       image: product.image,
-      quantity: 1,
     });
   };
 

@@ -43,7 +43,7 @@ export default function AuthForm({ mode, onSubmit }: Props) {
       <div className="text-center">
         <p className="text-caption text-dark-700">
           {mode === "sign-in"
-            ? "Don’t have an account? "
+            ? "Don't have an account? "
             : "Already have an account? "}
           <Link
             href={mode === "sign-in" ? "/sign-up" : "/sign-in"}
@@ -62,7 +62,7 @@ export default function AuthForm({ mode, onSubmit }: Props) {
         </p>
       </div>
 
-      <SocialProviders variant={mode} />
+      <SocialProviders />
 
       <div className="flex items-center gap-4">
         <hr className="h-px w-full border-0 bg-light-300" />

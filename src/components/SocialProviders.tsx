@@ -1,17 +1,13 @@
 "use client";
 
-import { Button } from "lucide-react";
-
 interface SocialProvidersProps {
   onGoogleSignIn?: () => void;
   onAppleSignIn?: () => void;
-  variant?: "sign-in" | "sign-up";
 }
 
 export default function SocialProviders({
   onGoogleSignIn,
   onAppleSignIn,
-  variant = "sign-in",
 }: SocialProvidersProps) {
   return (
     <div className="space-y-3">
