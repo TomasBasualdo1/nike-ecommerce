@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import SocialProviders from "./SocialProviders";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/auth";
 
 type Props = {
   mode: "sign-in" | "sign-up";
@@ -15,6 +16,7 @@ type Props = {
 export default function AuthForm({ mode, onSubmit }: Props) {
   const [show, setShow] = useState(false);
   const router = useRouter();
+  const { checkAuth } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,7 +26,13 @@ export default function AuthForm({ mode, onSubmit }: Props) {
     try {
       const result = await onSubmit(formData);
 
-      if (result?.ok) router.push("/");
+      if (result?.ok) {
+        // Small delay to ensure session is established
+        setTimeout(async () => {
+          await checkAuth();
+          router.push("/");
+        }, 100);
+      }
     } catch (e) {
       console.log("error", e);
     }

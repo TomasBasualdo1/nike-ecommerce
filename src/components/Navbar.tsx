@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/store/cart";
 import { Search, ShoppingCart, Menu, X } from "lucide-react";
+import { UserButton } from "@/components";
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const { getItemCount } = useCartStore();
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const cartCount = isHydrated ? getItemCount() : 0;
 
   const navigationLinks = [
     { name: "Men", href: "/products?gender[]=men" },
@@ -64,17 +72,12 @@ export default function Navbar() {
             >
               <ShoppingCart className="h-5 w-5" />
               <span className="ml-2 font-medium">
-                My Cart{getItemCount() > 0 && ` (${getItemCount()})`}
+                My Cart{cartCount > 0 && ` (${cartCount})`}
               </span>
             </Link>
 
-            {/* Sign In */}
-            <Link
-              href="/sign-in"
-              className="flex items-center text-dark-900 hover:text-dark-700 transition-colors duration-200"
-            >
-              <span className="font-medium">Sign In</span>
-            </Link>
+            {/* User Button */}
+            <UserButton />
 
             {/* Mobile menu button */}
             <button
